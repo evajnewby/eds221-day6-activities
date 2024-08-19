@@ -1,0 +1,104 @@
+---
+title: "lobster_exploration"
+author: Eva Newby
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Tasks 1 and 2
+```{r}
+rm(list = ls())
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(dplyr)
+
+lobsters <- read_csv(here("data","Lobster_Abundance_All_Years_20210412.csv"), na = c("-99999", "")) %>% 
+  clean_names() %>% 
+  uncount(count)
+
+# dplyr uncount duplicates rows, not columns like dplyr count
+
+# Find counts and mean sizes by site and year
+
+lobsters_summary <- lobsters %>%
+  group_by(year, site) %>%
+  summarize(sum_length = sum(size_mm, na.rm = TRUE), mean_length = mean(size_mm, na.rm = TRUE))
+
+# Make a plot
+  
+ggplot(data = lobsters_summary, aes(x = year, y = sum_length, color = site))+
+  geom_line() 
+  ggsave("Lobster_Summary.png")
+
+# Find the proportion of legal lobsters at each site for 2020
+
+lobsters_2020 <- lobsters %>%
+  filter(year == 2020) %>%
+  mutate(legal = case_when(size_mm >= 79.76 ~ "yes",
+                    size_mm < 79.76 ~ "no")) %>%
+              group_by(legal, site)%>%
+              summarize(count=n())
+
+ggplot(lobsters_2020, aes(x = site, y = count, fill = legal)) +
+  geom_col(position = "fill")
+  
+ggsave("Lobster_2020_proportion.png")
+
+# Why NAPL (Naples) and IVEE (Isla Vista) had the highest proportion of legal lobsters: They're protected areas.
+```
+
+## Task 3- Random Lobster Wrangling
+```{r}
+# Filter
+ex_a <- lobsters %>%
+  filter(site %in% c("IVEE", "CARP", "NAPL"))
+
+ex_b <- lobsters %>%
+  filter(month == 8)
+
+ex_c <- lobsters %>%
+  filter(site == "AQUE"| size_mm > 70)
+
+ex_d <- lobsters %>%
+  filter(!site %in% "NAPL")
+
+# group_by and summarize 
+
+ex_e <- lobsters %>%
+  group_by(site)%>%
+  summarize(mean_length_mm = mean(size_mm, na.rm = TRUE), stdev_length = sd(size_mm, na.rm = TRUE))
+
+ex_f <- lobsters %>%
+  group_by(site, month)%>%
+  summarize(max_length = max(size_mm, na.rm = TRUE))
+
+#Month 8- maximum length is 600 mm (at CARP). At month 9- maximum length is 107 mm (IVEE).
+
+# mutate practice
+ex_g <- lobsters %>%
+  mutate(size_cm = (size_mm / 10))
+
+ex_h <- lobsters %>%
+  mutate(site = tolower(site))
+
+ex_i <- lobsters %>% 
+  mutate(area = as.character(area))
+
+class(ex_i$area)
+
+# case_when practice
+ex_j <- lobsters %>%
+   mutate(size_bin = case_when(size_mm <= 70 ~ "small",
+                    size_mm > 70 ~ "large")) 
+
+ex_k <- lobsters %>%
+   mutate(designation = case_when(site %in% c("IVEE", "NAPL") ~ "MPA",
+                    site %in% c("AQUE", "CARP", "MOHK") ~ "not MPA"))
+              
+
+```
+
